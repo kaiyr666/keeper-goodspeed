@@ -25,30 +25,35 @@ function LoginForm() {
     setLoading(true);
     setError(false);
 
-    const result = await signIn('credentials', {
-      email, password,
-      redirect: false,
-      callbackUrl: redirect || undefined,
-    });
+    try {
+      const result = await signIn('credentials', {
+        email, password,
+        redirect: false,
+        callbackUrl: redirect || undefined,
+      });
 
-    setLoading(false);
+      setLoading(false);
 
-    if (!result?.ok) {
+      if (!result?.ok) {
+        setError(true);
+        return;
+      }
+
+      if (redirect) {
+        router.push(redirect);
+        return;
+      }
+
+      // Single session read — already in-flight from signIn cookie
+      const sessionRes = await fetch('/api/auth/session', { cache: 'no-store' });
+      const sessionData = await sessionRes.json();
+      const role = sessionData?.user?.role;
+
+      router.push(role === 'GM' ? '/dashboard' : '/upload');
+    } catch (err) {
+      setLoading(false);
       setError(true);
-      return;
     }
-
-    if (redirect) {
-      router.push(redirect);
-      return;
-    }
-
-    // Single session read — already in-flight from signIn cookie
-    const sessionRes = await fetch('/api/auth/session', { cache: 'no-store' });
-    const sessionData = await sessionRes.json();
-    const role = sessionData?.user?.role;
-
-    router.push(role === 'GM' ? '/dashboard' : '/upload');
   }
 
   return (
