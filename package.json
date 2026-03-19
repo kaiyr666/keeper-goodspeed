@@ -6,7 +6,8 @@
     "dev": "next dev",
     "build": "next build",
     "start": "next start",
-    "lint": "next lint"
+    "lint": "next lint",
+    "seed": "ts-node -P tsconfig.seed.json prisma/seed.ts"
   },
   "prisma": {
     "seed": "ts-node -P tsconfig.seed.json prisma/seed.ts"
