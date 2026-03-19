@@ -1,14 +1,14 @@
 import { Resend } from 'resend';
 import type { NotificationBatch } from '@/types';
 
-const resend  = new Resend(process.env.RESEND_API_KEY);
-const FROM    = process.env.RESEND_FROM_EMAIL ?? 'keeper@example.com';
-const APP_URL = process.env.NEXT_PUBLIC_APP_URL ?? 'http://localhost:3000';
+function getResend() { return new Resend(process.env.RESEND_API_KEY); }
+const FROM    = () => process.env.RESEND_FROM_EMAIL ?? 'keeper@example.com';
+const APP_URL = () => process.env.NEXT_PUBLIC_APP_URL ?? 'http://localhost:3000';
 
 // NOTIF-01: new submission → GM
 export async function sendSubmissionNotification(toEmail: string, toName: string, batch: NotificationBatch) {
-  return resend.emails.send({
-    from: FROM, to: toEmail,
+  return getResend().emails.send({
+    from: FROM(), to: toEmail,
     subject: `Action Required: New Asset Submission — ${batch.quantity}× ${batch.assetType}`,
     html: buildEmail({
       title: 'New Asset Submission', greeting: `Hi ${toName},`,
@@ -20,15 +20,15 @@ export async function sendSubmissionNotification(toEmail: string, toName: string
         { label: 'Department', value: batch.department },
       ],
       ctaText: 'Review & Approve',
-      ctaUrl: `${APP_URL}/assets/${batch.id}`,
+      ctaUrl: `${APP_URL()}/assets/${batch.id}`,
     }),
   });
 }
 
 // NOTIF-02: dept approved → GM for final sign-off
 export async function sendGmApprovalNotification(toEmail: string, toName: string, batch: NotificationBatch, approverName: string) {
-  return resend.emails.send({
-    from: FROM, to: toEmail,
+  return getResend().emails.send({
+    from: FROM(), to: toEmail,
     subject: `Final Approval Needed: ${batch.referenceId} — ${batch.quantity}× ${batch.assetType}`,
     html: buildEmail({
       title: 'Final Approval Required', greeting: `Hi ${toName},`,
@@ -38,15 +38,15 @@ export async function sendGmApprovalNotification(toEmail: string, toName: string
         { label: 'Asset',     value: `${batch.quantity}× ${batch.assetType}` },
       ],
       ctaText: 'Give Final Approval',
-      ctaUrl: `${APP_URL}/assets/${batch.id}`,
+      ctaUrl: `${APP_URL()}/assets/${batch.id}`,
     }),
   });
 }
 
 // NOTIF-03: fully approved → original submitter
 export async function sendApprovalConfirmation(toEmail: string, toName: string, batch: NotificationBatch) {
-  return resend.emails.send({
-    from: FROM, to: toEmail,
+  return getResend().emails.send({
+    from: FROM(), to: toEmail,
     subject: `Approved: Your submission ${batch.referenceId}`,
     html: buildEmail({
       title: 'Your Submission Has Been Approved', greeting: `Hi ${toName},`,
@@ -56,22 +56,22 @@ export async function sendApprovalConfirmation(toEmail: string, toName: string, 
         { label: 'Asset',     value: `${batch.quantity}× ${batch.assetType}` },
       ],
       ctaText: 'View Asset Journey',
-      ctaUrl: `${APP_URL}/assets/${batch.id}`,
+      ctaUrl: `${APP_URL()}/assets/${batch.id}`,
     }),
   });
 }
 
 // NOTIF-04: rejected → original submitter
 export async function sendRejectionNotification(toEmail: string, toName: string, batch: NotificationBatch, reason: string) {
-  return resend.emails.send({
-    from: FROM, to: toEmail,
+  return getResend().emails.send({
+    from: FROM(), to: toEmail,
     subject: `Update on your submission ${batch.referenceId}`,
     html: buildEmail({
       title: 'Submission Not Approved', greeting: `Hi ${toName},`,
       body: `Your submission for ${batch.quantity}× ${batch.assetType} was not approved. Reason: "${reason}".`,
       details: [{ label: 'Reference', value: batch.referenceId }],
       ctaText: 'View Details',
-      ctaUrl: `${APP_URL}/assets/${batch.id}`,
+      ctaUrl: `${APP_URL()}/assets/${batch.id}`,
     }),
   });
 }
