@@ -5,8 +5,8 @@ import type { UploadFormState } from '@/types';
 const ALLOWED_TYPES = ['image/jpeg', 'image/png', 'image/heic', 'image/heif'];
 const MAX_SIZE_MB = 10;
 const MAX_PHOTOS = 20;
-const MAX_PX = 1200;
-const JPEG_QUALITY = 0.8;
+const MAX_PX = 900;
+const JPEG_QUALITY = 0.72;
 
 async function compressImage(file: File): Promise<File> {
   return new Promise((resolve) => {

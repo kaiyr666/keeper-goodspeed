@@ -10,9 +10,10 @@ interface Props {
   goToStep: (step: 1 | 2 | 3 | 4) => void;
   propertyName: string;
   department: string;
+  uploadProgress: number;
 }
 
-export function StepReview({ state, update, onBack, onSubmit, goToStep, propertyName, department }: Props) {
+export function StepReview({ state, update, onBack, onSubmit, goToStep, propertyName, department, uploadProgress }: Props) {
   const cond = CONDITION_OPTIONS.find(o => o.code === state.condition);
   const isOffline = typeof navigator !== 'undefined' && !navigator.onLine;
 
@@ -89,13 +90,28 @@ export function StepReview({ state, update, onBack, onSubmit, goToStep, property
         </div>
       )}
 
+      {state.isSubmitting && (
+        <div className="mb-4">
+          <div className="flex justify-between text-xs text-gray-500 mb-1">
+            <span>{uploadProgress < 100 ? 'Uploading photos…' : 'Processing…'}</span>
+            <span>{uploadProgress}%</span>
+          </div>
+          <div className="w-full bg-gray-200 rounded-full h-2">
+            <div
+              className="bg-keeper-blue h-2 rounded-full transition-all duration-300"
+              style={{ width: `${uploadProgress < 100 ? uploadProgress : 100}%` }}
+            />
+          </div>
+        </div>
+      )}
+
       <div className="flex gap-3">
         <button onClick={onBack} className="btn-secondary" disabled={state.isSubmitting}>Back</button>
         <button onClick={onSubmit} disabled={state.isSubmitting || isOffline} className="btn-primary flex items-center justify-center gap-2">
           {state.isSubmitting ? (
             <>
               <span className="w-4 h-4 border-2 border-white border-t-transparent rounded-full animate-spin" />
-              Submitting…
+              {uploadProgress < 100 ? `${uploadProgress}%` : 'Processing…'}
             </>
           ) : 'Submit Assets'}
         </button>

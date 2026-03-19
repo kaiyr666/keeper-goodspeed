@@ -26,6 +26,7 @@ export default function UploadPage() {
   const router = useRouter();
   const [state, setState] = useState<UploadFormState>(INITIAL_STATE);
   const [draftToResume, setDraftToResume] = useState<any>(null);
+  const [uploadProgress, setUploadProgress] = useState<number>(0);
 
   const update = useCallback((patch: Partial<UploadFormState>) => {
     setState(s => ({ ...s, ...patch }));
@@ -63,8 +64,9 @@ export default function UploadPage() {
   const goBack = () => update({ step: (state.step > 1 ? state.step - 1 : 1) as any });
   const goToStep = (s: 1 | 2 | 3 | 4) => update({ step: s });
 
-  const handleSubmit = async () => {
+  const handleSubmit = () => {
     update({ isSubmitting: true, submitError: null });
+    setUploadProgress(0);
 
     const formData = new FormData();
     formData.append('category',  state.category);
@@ -76,18 +78,25 @@ export default function UploadPage() {
     if (state.notes)                    formData.append('notes',                  state.notes);
     state.photos.forEach(f => formData.append('photos', f));
 
-    // DO NOT set Content-Type header — browser sets it with boundary automatically
-    const res = await fetch('/api/assets', { method: 'POST', body: formData });
-
-    if (!res.ok) {
-      const body = await res.json().catch(() => ({}));
-      update({ isSubmitting: false, submitError: body.error ?? 'Submission failed. Please try again.' });
-      return;
-    }
-
-    const { batchId, referenceId } = await res.json();
-    localStorage.removeItem(DRAFT_KEY);
-    update({ isSubmitting: false, submitted: true, submittedReferenceId: referenceId, submittedBatchId: batchId });
+    const xhr = new XMLHttpRequest();
+    xhr.upload.addEventListener('progress', (e) => {
+      if (e.lengthComputable) setUploadProgress(Math.round((e.loaded / e.total) * 100));
+    });
+    xhr.addEventListener('load', () => {
+      if (xhr.status === 201) {
+        const { batchId, referenceId } = JSON.parse(xhr.responseText);
+        localStorage.removeItem(DRAFT_KEY);
+        update({ isSubmitting: false, submitted: true, submittedReferenceId: referenceId, submittedBatchId: batchId });
+      } else {
+        const body = JSON.parse(xhr.responseText || '{}');
+        update({ isSubmitting: false, submitError: body.error ?? 'Submission failed. Please try again.' });
+      }
+    });
+    xhr.addEventListener('error', () => {
+      update({ isSubmitting: false, submitError: 'Network error. Please try again.' });
+    });
+    xhr.open('POST', '/api/assets');
+    xhr.send(formData);
   };
 
   if (status === 'loading') return (
@@ -168,6 +177,7 @@ export default function UploadPage() {
               goToStep={goToStep}
               propertyName={propertyName}
               department={department}
+              uploadProgress={uploadProgress}
             />
           )}
         </div>
