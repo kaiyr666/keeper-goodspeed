@@ -49,12 +49,10 @@ export const authOptions: NextAuthOptions = {
   },
   pages: { signIn: '/login' },
   session: { strategy: 'jwt' },
-  ...(process.env.NODE_ENV !== 'production' && {
-    cookies: {
-      sessionToken: {
-        name: 'next-auth.session-token',
-        options: { httpOnly: true, sameSite: 'lax', path: '/', secure: false },
-      },
+  cookies: {
+    sessionToken: {
+      name: 'next-auth.session-token',
+      options: { httpOnly: true, sameSite: 'lax', path: '/', secure: false },
     },
-  }),
+  },
 };
