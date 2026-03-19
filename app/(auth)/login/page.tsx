@@ -151,7 +151,7 @@ function LoginForm() {
 
         {/* Demo hint */}
         <p className="mt-6 text-xs text-gray-400 text-center leading-5">
-          Demo — GM: harish@goodspeed.studio / keeper123<br />
+          Demo — GM: kaiyr.shayakhmetov@gmail.com / keeper123<br />
           Staff: sarah.chen@grandhotel.com / keeper123
         </p>
 
