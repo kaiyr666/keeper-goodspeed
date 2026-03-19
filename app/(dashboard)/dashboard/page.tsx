@@ -23,7 +23,9 @@ function DashboardSkeleton() {
 }
 
 export default function DashboardPage() {
-  const { data: session } = useSession({ required: true });
+  // Do NOT use required:true — it auto-redirects to /login if SessionProvider
+  // hasn't synced the new JWT yet (race condition after signIn with redirect:false).
+  const { data: session } = useSession();
   const [data, setData]               = useState<DashboardData | null>(null);
   const [loading, setLoading]         = useState(true);
   const [lastUpdated, setLastUpdated] = useState<Date | null>(null);

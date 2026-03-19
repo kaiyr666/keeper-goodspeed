@@ -1,18 +1,15 @@
 'use client';
-import { useState, useEffect, Suspense } from 'react';
+import { useState, Suspense } from 'react';
 import { signIn } from 'next-auth/react';
-import { useRouter, useSearchParams } from 'next/navigation';
+import { useSearchParams } from 'next/navigation';
 
 function LoginForm() {
-  const router = useRouter();
   const searchParams = useSearchParams();
   const redirect = searchParams.get('redirect') ?? '';
 
-  // Prefetch both possible destinations so they're ready instantly after login
-  useEffect(() => {
-    router.prefetch('/dashboard');
-    router.prefetch('/upload');
-  }, [router]);
+  // Do NOT prefetch protected routes — the middleware would cache a redirect-to-login
+  // result while unauthenticated, causing router.push() after login to replay that
+  // stale redirect and land back on /login.
 
   const [email, setEmail]       = useState('');
   const [password, setPassword] = useState('');
@@ -32,24 +29,27 @@ function LoginForm() {
         callbackUrl: redirect || undefined,
       });
 
-      setLoading(false);
-
       if (!result?.ok) {
+        setLoading(false);
         setError(true);
         return;
       }
 
       if (redirect) {
-        router.push(redirect);
+        // Hard navigation: ensures middleware sees the fresh JWT cookie and
+        // SessionProvider initialises from scratch with the new session.
+        window.location.href = redirect;
         return;
       }
 
-      // Single session read — already in-flight from signIn cookie
+      // Fetch the session directly — the JWT cookie is already set by signIn.
+      // We use window.location.href below (hard nav) so the router cache cannot
+      // replay the old unauthenticated prefetch redirect.
       const sessionRes = await fetch('/api/auth/session', { cache: 'no-store' });
       const sessionData = await sessionRes.json();
       const role = sessionData?.user?.role;
 
-      router.push(role === 'GM' ? '/dashboard' : '/upload');
+      window.location.href = role === 'GM' ? '/dashboard' : '/upload';
     } catch (err) {
       setLoading(false);
       setError(true);
