@@ -1,9 +1,9 @@
 'use client';
-import { useState, useEffect } from 'react';
+import { useState, useEffect, Suspense } from 'react';
 import { signIn } from 'next-auth/react';
 import { useRouter, useSearchParams } from 'next/navigation';
 
-export default function LoginPage() {
+function LoginForm() {
   const router = useRouter();
   const searchParams = useSearchParams();
   const redirect = searchParams.get('redirect') ?? '';
@@ -38,10 +38,6 @@ export default function LoginPage() {
       return;
     }
 
-    // Role is embedded in the JWT — read it from the session endpoint
-    // but avoid a second round-trip by inferring from email (demo only)
-    // or by letting the server redirect after callbackUrl resolution.
-    // Use result.url if a redirect was set, otherwise route by role.
     if (redirect) {
       router.push(redirect);
       return;
@@ -156,5 +152,13 @@ export default function LoginPage() {
 
       </div>
     </div>
+  );
+}
+
+export default function LoginPage() {
+  return (
+    <Suspense>
+      <LoginForm />
+    </Suspense>
   );
 }
