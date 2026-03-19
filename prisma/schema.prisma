@@ -1,0 +1,162 @@
+// prisma/schema.prisma
+
+generator client {
+  provider = "prisma-client-js"
+}
+
+datasource db {
+  provider = "postgresql"
+  url      = env("DATABASE_URL")
+}
+
+enum Role {
+  DEPT_USER
+  GM
+}
+
+enum Department {
+  ROOMS
+  FNB
+  EVENTS
+  SPA
+  BACK_OF_HOUSE
+  GENERAL
+}
+
+enum AssetCategory {
+  FURNITURE
+  LINEN
+  ELECTRONICS
+  KITCHEN
+  FIXTURES
+  OTHER
+}
+
+enum AssetCondition {
+  A
+  B
+  C
+  D
+}
+
+enum BatchStatus {
+  DRAFT
+  PENDING_DEPT_APPROVAL
+  PENDING_GM_APPROVAL
+  APPROVED
+  REJECTED
+  LISTED
+  COMPLETED
+}
+
+enum OutcomeType {
+  SOLD
+  DONATED
+  RECYCLED
+  WRITTEN_OFF
+}
+
+enum EventType {
+  SUBMITTED
+  APPROVED_DEPT
+  APPROVED_GM
+  REJECTED
+  LISTED
+  COMPLETED
+  COMMENT_ADDED
+}
+
+model Property {
+  id        String   @id @default(uuid())
+  name      String
+  groupName String?
+  timezone  String   @default("Europe/London")
+  country   String   @default("UK")
+  currency  String   @default("GBP")
+  createdAt DateTime @default(now())
+  users     User[]
+  batches   AssetBatch[]
+}
+
+model User {
+  id           String     @id @default(uuid())
+  email        String     @unique
+  passwordHash String
+  fullName     String
+  role         Role
+  department   Department
+  isActive     Boolean    @default(true)
+  createdAt    DateTime   @default(now())
+  lastLoginAt  DateTime?
+  property     Property   @relation(fields: [propertyId], references: [id])
+  propertyId   String
+  submittedBatches AssetBatch[]   @relation("SubmittedBy")
+  journeyEvents    JourneyEvent[]
+}
+
+model AssetBatch {
+  id                     String         @id @default(uuid())
+  referenceId            String         @unique
+  property               Property       @relation(fields: [propertyId], references: [id])
+  propertyId             String
+  submittedBy            User           @relation("SubmittedBy", fields: [submittedById], references: [id])
+  submittedById          String
+  department             Department
+  category               AssetCategory
+  assetType              String
+  typeCustom             String?
+  quantity               Int
+  condition              AssetCondition
+  yearOfPurchase         Int?
+  brand                  String?
+  originalPurchaseValue  Decimal?       @db.Decimal(10, 2)
+  estimatedRecoveryValue Decimal?       @db.Decimal(10, 2)
+  actualRecoveryValue    Decimal?       @db.Decimal(10, 2)
+  locationWithinProperty String?
+  notes                  String?
+  status                 BatchStatus    @default(DRAFT)
+  outcomeType            OutcomeType?
+  co2Kg                  Decimal?       @db.Decimal(8, 2)
+  weightKg               Decimal?       @db.Decimal(8, 2)
+  submittedAt            DateTime       @default(now())
+  completedAt            DateTime?
+  isDeleted              Boolean        @default(false)
+  assets        Asset[]
+  photos        AssetPhoto[]
+  journeyEvents JourneyEvent[]
+}
+
+// Individual asset records — auto-created on batch submission (quantity × rows)
+model Asset {
+  id          String     @id @default(uuid())
+  batch       AssetBatch @relation(fields: [batchId], references: [id])
+  batchId     String
+  assetNumber Int
+  referenceId String     @unique   // format: KPR-2024-0001-001
+  createdAt   DateTime   @default(now())
+}
+
+model AssetPhoto {
+  id           String     @id @default(uuid())
+  batch        AssetBatch @relation(fields: [batchId], references: [id])
+  batchId      String
+  storageUrl   String
+  thumbnailUrl String?
+  sortOrder    Int        @default(0)
+  uploadedAt   DateTime   @default(now())
+}
+
+model JourneyEvent {
+  id             String       @id @default(uuid())
+  batch          AssetBatch   @relation(fields: [batchId], references: [id])
+  batchId        String
+  eventType      EventType
+  performedBy    User?        @relation(fields: [performedById], references: [id])
+  performedById  String?
+  previousStatus BatchStatus?
+  newStatus      BatchStatus?
+  comment        String?
+  createdAt      DateTime     @default(now())
+
+  @@index([batchId])
+}
