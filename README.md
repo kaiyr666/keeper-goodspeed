@@ -1,36 +1,59 @@
-This is a [Next.js](https://nextjs.org/) project bootstrapped with [`create-next-app`](https://github.com/vercel/next.js/tree/canary/packages/create-next-app).
+# Keeper: asset disposal workflow for hotels
 
-## Getting Started
+Hotels regularly retire furniture, linen, electronics and kitchen equipment. Today that is handled over WhatsApp, email and spreadsheets. Nobody has one list of what is available, approvals happen in chat threads, and finance cannot see what was recovered or what went to landfill.
 
-First, run the development server:
+Keeper replaces that with one system. Staff log items from their phone, managers approve them, every step is recorded, and the general manager (GM) sees the value recovered and the CO₂ avoided.
+
+## What the first version had to prove
+
+The first question is not whether the system can be built, but whether hotels will use it:
+
+- **Upload** has to be fast enough (under two minutes) that housekeeping or F&B staff do it from their phone on the floor.
+- **Approval** has to be light enough that managers do not go back to WhatsApp.
+- **The dashboard** has to show the GM and finance something they would not otherwise see.
+
+So this version covers upload, the dashboard, the asset trail and notifications. Governance features (the full approval pipeline, the cross-property admin panel, ESG reporting) come once usage is proven. Marketplace, payments and AI are out of scope.
+
+## What is built
+
+| Area | What it does |
+| --- | --- |
+| Mobile upload | Five steps: category and type, condition (A to D), location and quantity, photos, review. Photos come straight from the phone camera or gallery, up to 20 per item, HEIC accepted. They are compressed on the phone (900 px, JPEG 72%) before upload, with a progress bar. The draft is saved in the browser and offered for resume for 48 hours. |
+| Approval | Department approval, then GM sign-off. A status can only change from a valid previous status. Rejecting needs a reason of at least 10 characters. Each status change and its audit record are written in one database transaction. |
+| Asset trail | Every submission gets a reference (KPR-…), plus a record for each individual unit. A timeline shows every event, who did it, when and any comment. The page can be printed or saved as PDF from the browser. |
+| Notifications | Emails (Resend) on submission (to the GM), on department approval (to the GM for sign-off), and on approval or rejection (to the person who submitted, with the reason). |
+| GM dashboard | Tiles for live inventory, estimated recovery value, value recovered this month and CO₂ diverted. A chart by category, recent submissions and the queue of items waiting for approval. |
+| Accounts | Email and password login. Two roles, department user and GM, each tied to a property and a department. |
+
+## What is skipped, and why
+
+| Skipped | Why |
+| --- | --- |
+| CSV bulk upload | The adoption risk is staff logging items one at a time on the floor. Bulk upload helps back-office clear-outs and can follow. |
+| Separate department-head role | Both approval stages exist; in the demo the GM can act on both. Adding the role is a permissions change, not a new flow. |
+| Full 11-stage pipeline | This version uses 7 statuses (Draft, Pending approval, Pending GM sign-off, Approved, Rejected, Listed, Completed). The later stages depend on how items leave the hotel (resale, donation, recycling), which is not decided yet. |
+| Keeper admin panel, cross-property view, offer management | These prove governance, the second phase. They need real usage data first. |
+| In-app messaging and WhatsApp hand-off | Email covers the moments that need action. Messaging would add a channel before we know which one people actually use. |
+| Live CO₂ and weight calculation | The dashboard reads demo data. Weight-per-item and CO₂ factor tables are in `lib/constants.ts` with placeholder values, to be checked against a recognised hospitality source before anything is reported externally. |
+| Excel export, CSR role, ESG reports | Second phase. |
+
+## Tech
+
+Next.js 14 (App Router, TypeScript), Tailwind, PostgreSQL with Prisma, NextAuth, Zod, Recharts. Photos go to Vercel Blob (local disk in development). Email through Resend. Deployed on Railway, with database migrations run on start. Built with Claude Code.
+
+## Run locally
 
 ```bash
+npm install
+# set the environment variables below in .env
+npx prisma migrate dev
+npm run seed
 npm run dev
-# or
-yarn dev
-# or
-pnpm dev
-# or
-bun dev
 ```
 
-Open [http://localhost:3000](http://localhost:3000) with your browser to see the result.
+Environment variables: `DATABASE_URL`, `NEXTAUTH_SECRET`, `NEXTAUTH_URL`, `NEXT_PUBLIC_APP_URL`, `RESEND_API_KEY`, `RESEND_FROM_EMAIL`, and optionally `BLOB_READ_WRITE_TOKEN` (without it, photos are saved to `public/uploads`).
 
-You can start editing the page by modifying `app/page.tsx`. The page auto-updates as you edit the file.
+Demo logins after seeding (password `keeper123`):
 
-This project uses [`next/font`](https://nextjs.org/docs/basic-features/font-optimization) to automatically optimize and load Inter, a custom Google Font.
-
-## Learn More
-
-To learn more about Next.js, take a look at the following resources:
-
-- [Next.js Documentation](https://nextjs.org/docs) - learn about Next.js features and API.
-- [Learn Next.js](https://nextjs.org/learn) - an interactive Next.js tutorial.
-
-You can check out [the Next.js GitHub repository](https://github.com/vercel/next.js/) - your feedback and contributions are welcome!
-
-## Deploy on Vercel
-
-The easiest way to deploy your Next.js app is to use the [Vercel Platform](https://vercel.com/new?utm_medium=default-template&filter=next.js&utm_source=create-next-app&utm_campaign=create-next-app-readme) from the creators of Next.js.
-
-Check out our [Next.js deployment documentation](https://nextjs.org/docs/deployment) for more details.
+- GM: `james.wilson@grandhotel.com`
+- Department user: `sarah.chen@grandhotel.com`
